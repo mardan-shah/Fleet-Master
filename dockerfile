@@ -11,7 +11,6 @@ RUN npm ci
 COPY . .
 
 # Generate Prisma client and build the app
-# Ensure Prisma Client is generated before Next.js build to avoid type errors
 RUN npx prisma generate
 RUN npm run build
 
@@ -26,6 +25,10 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/entrypoint.sh ./entrypoint.sh
+
+# Make entrypoint executable
+RUN chmod +x ./entrypoint.sh
 
 # Set environment variables
 ENV NODE_ENV=production
@@ -36,6 +39,9 @@ ENV NEXTAUTH_SECRET="7df8a9b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d
 ENV NEXTAUTH_URL="https://fleet.fieldwaves.com"
 
 EXPOSE 3000
+
+# Use entrypoint script to handle DB creation if needed
+ENTRYPOINT ["./entrypoint.sh"]
 
 # Start command handles migrations and seeding as defined in package.json
 CMD ["npm", "run", "start"]
