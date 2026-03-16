@@ -25,6 +25,7 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/src/prisma-client ./src/prisma-client
 COPY --from=base /app/entrypoint.sh ./entrypoint.sh
 
 # Make entrypoint executable
@@ -35,7 +36,7 @@ ENV NODE_ENV=production
 
 # These should be overridden in Coolify/Deployment settings
 ENV DATABASE_URL="postgres://postgres:uJiIZ3dBbtZvVFS4xy4OVAMyARSCtpUO29QzbdpVNC5lKhC6XPP4xHXFlq8McirV@cqiqcthiovbat5s3onr00kwd:5432/postgres"
-ENV NEXTAUTH_SECRET="7df8a9b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
+ENV NEXTAUTH_SECRET="7df8a9b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
 ENV NEXTAUTH_URL="https://fleet.fieldwaves.com"
 
 EXPOSE 3000
