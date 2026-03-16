@@ -3,19 +3,16 @@ FROM node:22-alpine AS base
 
 WORKDIR /app
 
-# Copy package files first for dependency install caching
+# Install dependencies
 COPY package.json package-lock.json ./
-
-# Install dependencies (including dev deps, needed for build)
 RUN npm ci
 
 # Copy the rest of the source code
-COPY . ./
-
-# Generate Prisma client
-RUN npx prisma generate
+COPY . .
 
 # Generate Prisma client and build the app
+# Ensure Prisma Client is generated before Next.js build to avoid type errors
+RUN npx prisma generate
 RUN npm run build
 
 # Production image
@@ -28,12 +25,17 @@ COPY --from=base /app/package-lock.json ./
 COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
+COPY --from=base /app/prisma ./prisma
 
+# Set environment variables
 ENV NODE_ENV=production
+
+# These should be overridden in Coolify/Deployment settings
 ENV DATABASE_URL="postgres://postgres:uJiIZ3dBbtZvVFS4xy4OVAMyARSCtpUO29QzbdpVNC5lKhC6XPP4xHXFlq8McirV@cqiqcthiovbat5s3onr00kwd:5432/postgres"
 ENV NEXTAUTH_SECRET="7df8a9b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
 ENV NEXTAUTH_URL="https://fleet.fieldwaves.com"
 
 EXPOSE 3000
 
+# Start command handles migrations and seeding as defined in package.json
 CMD ["npm", "run", "start"]
