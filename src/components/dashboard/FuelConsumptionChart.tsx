@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Line, LineChart, XAxis, YAxis } from "recharts"
 
-const FuelConsumptionChart = ({ data }) => {
+const FuelConsumptionChart = ({ data }: { data: any }) => {
   return (
     <Card className="bg-dark border-dark-border overflow-hidden">
       <CardHeader>

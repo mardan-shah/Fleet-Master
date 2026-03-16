@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
-const MaintenanceCostsChart = ({ data }) => {
+const MaintenanceCostsChart = ({ data }: { data: any }) => {
   return (
     <Card className="bg-dark border-dark-border overflow-hidden">
       <CardHeader>

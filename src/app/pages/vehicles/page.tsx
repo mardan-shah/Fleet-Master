@@ -20,9 +20,9 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { supabase } from "@/supabase"
 import Image from "next/image"
 import { useToast } from "@/hooks/use-toast"
+import { getVehicles, addOrEditVehicle, deleteVehicle } from "@/app/actions/vehicle"
 
 interface Vehicle {
   id: string
@@ -33,53 +33,16 @@ interface Vehicle {
   model: string
   manufacturer: string
   image_url: string
-  created_by: string
 }
 
 const vehicleTypes = [
-  "Sedan",
-  "SUV",
-  "Truck",
-  "Van",
-  "Coupe",
-  "Hatchback",
-  "Convertible",
-  "Wagon",
-  "Minivan",
-  "Pickup",
-  "Crossover",
-  "Sports Car",
-  "Electric",
-  "Hybrid",
-  "Luxury",
-  "Compact",
-  "Mid-size",
-  "Full-size",
-  "Off-road",
-  "Commercial",
+  "Sedan", "SUV", "Truck", "Van", "Coupe", "Hatchback", "Convertible", "Wagon", "Minivan", "Pickup",
+  "Crossover", "Sports Car", "Electric", "Hybrid", "Luxury", "Compact", "Mid-size", "Full-size", "Off-road", "Commercial",
 ]
 
 const manufacturers = [
-  "Toyota",
-  "Ford",
-  "Chevrolet",
-  "Honda",
-  "Nissan",
-  "BMW",
-  "Mercedes-Benz",
-  "Audi",
-  "Volkswagen",
-  "Hyundai",
-  "Kia",
-  "Subaru",
-  "Mazda",
-  "Lexus",
-  "Jeep",
-  "Tesla",
-  "Porsche",
-  "Volvo",
-  "Land Rover",
-  "Jaguar",
+  "Toyota", "Ford", "Chevrolet", "Honda", "Nissan", "BMW", "Mercedes-Benz", "Audi", "Volkswagen", "Hyundai",
+  "Kia", "Subaru", "Mazda", "Lexus", "Jeep", "Tesla", "Porsche", "Volvo", "Land Rover", "Jaguar",
 ]
 
 const modelsByManufacturer: { [key: string]: string[] } = {
@@ -138,152 +101,72 @@ const VehicleComponent = () => {
   }, [selectedManufacturer])
 
   const fetchVehicles = async () => {
-    const { data, error } = await supabase.from("vehicles").select("*").order("name", { ascending: true })
-    if (error) {
+    try {
+      const data = await getVehicles()
+      setVehicles(data as any[])
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch vehicles",
         variant: "destructive",
       })
-      return
     }
-    setVehicles(data as Vehicle[])
   }
 
-  const handleImageUpload = async (file: File, oldImageUrl?: string) => {
-    const fileExt = file.name.split(".").pop();
-    const fileName = `${Date.now()}.${fileExt}`;
-    const filePath = `vehicle-images/${fileName}`;
-  
-    // Delete the old image if it exists
-    if (oldImageUrl) {
-      const oldFilePath = oldImageUrl.split("/").pop(); // Extract the file name from the URL
-      const { error: deleteError } = await supabase.storage
-        .from("vehicle-images")
-        .remove([oldFilePath]);
-  
-      if (deleteError) {
-        console.error("Failed to delete old image:", deleteError);
-        toast({
-          title: "Error",
-          description: "Failed to delete old image",
-          variant: "destructive",
-        });
-        return null;
-      }
+  const handleImageUpload = async (file: File) => {
+    const formData = new FormData()
+    formData.append("file", file)
+
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
+
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error || "Upload failed")
     }
-  
-    // Upload the new image
-    const { data, error } = await supabase.storage
-      .from("vehicle-images")
-      .upload(filePath, file, {
-        cacheControl: "3600",
-        upsert: false,
-      });
-  
-    if (error) {
-      console.error("Image upload error:", error);
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
-        variant: "destructive",
-      });
-      return null;
-    }
-  
-    const { data: publicUrlData } = supabase.storage
-      .from("vehicle-images")
-      .getPublicUrl(filePath);
-  
-    return publicUrlData.publicUrl;
-  };
+
+    const { url } = await response.json()
+    return url
+  }
 
   const handleAddOrEditVehicle = async () => {
-    console.log("Starting handleAddOrEditVehicle");
-    setLoading(true);
-    setUploadProgress(0);
-    let image_url = newVehicle.image_url;
-  
+    setLoading(true)
+    let image_url = previewImage || ""
+
     try {
-      console.log("Checking for image file");
       if (imageFile) {
-        console.log("Image file found, uploading...");
-        const uploadedUrl = await handleImageUpload(
-          imageFile,
-          editVehicleId ? previewImage : undefined
-        );
-        if (uploadedUrl) image_url = uploadedUrl;
-        console.log("Image uploaded, URL:", uploadedUrl);
+        image_url = await handleImageUpload(imageFile)
       }
-  
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-      console.log("User:", user);
-  
-      if (!user) {
-        setLoading(false);
-        toast({
-          title: "Error",
-          description: "User not authenticated",
-          variant: "destructive",
-        });
-        return;
-      }
-  
+
       const vehicleData = {
         ...newVehicle,
-        year: parseInt(newVehicle.year),
         manufacturer: selectedManufacturer,
         image_url,
-        created_by: user?.id,
-      };
-      console.log("Vehicle Data:", vehicleData);
-  
-      if (editVehicleId) {
-        console.log("Editing vehicle with ID:", editVehicleId);
-        const { data, error } = await supabase
-          .from("vehicles")
-          .update(vehicleData)
-          .eq("id", editVehicleId)
-          .select();
-  
-        if (error) throw error;
-  
-        setVehicles((prev) =>
-          prev.map((vehicle) => (vehicle.id === editVehicleId ? data[0] : vehicle))
-        );
-        toast({
-          title: "Vehicle Updated",
-          description: "The vehicle has been successfully updated.",
-        });
-      } else {
-        console.log("Adding new vehicle");
-        const { data, error } = await supabase.from("vehicles").insert([vehicleData]).select();
-  
-        if (error) throw error;
-  
-        setVehicles((prev) => [...prev, data[0]]);
-        toast({
-          title: "Vehicle Added",
-          description: "The vehicle has been successfully added.",
-        });
       }
-  
-      resetForm();
-      setShowAddVehicle(false);
-    } catch (error) {
-      console.error("Error:", error);
+
+      await addOrEditVehicle(vehicleData, editVehicleId || undefined)
+      
+      toast({
+        title: editVehicleId ? "Vehicle Updated" : "Vehicle Added",
+        description: `The vehicle has been successfully ${editVehicleId ? "updated" : "added"}.`,
+      })
+
+      fetchVehicles()
+      resetForm()
+      setShowAddVehicle(false)
+    } catch (error: any) {
+      console.error("Error:", error)
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
-      });
+      })
     } finally {
-      setLoading(false);
-      setUploadProgress(0);
+      setLoading(false)
     }
-  };
+  }
 
   const handleEditVehicle = (vehicle: Vehicle) => {
     setEditVehicleId(vehicle.id);
@@ -296,16 +179,14 @@ const VehicleComponent = () => {
       manufacturer: vehicle.manufacturer,
     });
     setSelectedManufacturer(vehicle.manufacturer);
-    setPreviewImage(vehicle.image_url); // Set the preview image
+    setPreviewImage(vehicle.image_url);
     setShowAddVehicle(true);
   };
 
   const handleDeleteVehicle = async (id: string) => {
     try {
-      const { error } = await supabase.from("vehicles").delete().eq("id", id)
-      if (error) throw error
-
-      setVehicles((prev) => prev.filter((vehicle) => vehicle.id !== id))
+      await deleteVehicle(id)
+      fetchVehicles()
       toast({
         title: "Vehicle Deleted",
         description: "The vehicle has been successfully deleted.",
@@ -360,7 +241,7 @@ const VehicleComponent = () => {
                 id="name"
                 placeholder="Enter vehicle name"
                 className="bg-dark-hover border-dark-border text-gray-light"
-                value={newVehicle.name || ""} // Ensure value is never undefined
+                value={newVehicle.name}
                 onChange={(e) => setNewVehicle({ ...newVehicle, name: e.target.value })}
               />
 
@@ -460,21 +341,10 @@ const VehicleComponent = () => {
                 />
               </div>
             )}
-            {uploadProgress > 0 && (
-              <div className="mt-2">
-                <div className="w-full bg-gray-700 rounded-full h-2">
-                  <div
-                    className="bg-primaryaccent h-2 rounded-full"
-                    style={{ width: `${uploadProgress}%` }}
-                  ></div>
-                </div>
-                <p className="text-sm text-gray-light mt-1">Uploading: {uploadProgress}%</p>
-              </div>
-            )}
           </div>
 
           <Button className="w-full bg-primaryaccent text-dark hover:bg-primaryaccent/90" type="submit" disabled={loading}>
-            {loading ? (editVehicleId ? "Saving Changes..." : "Adding Vehicle...") : (editVehicleId ? "Save Changes" : "Add Vehicle")}
+            {loading ? "Processing..." : (editVehicleId ? "Save Changes" : "Add Vehicle")}
           </Button>
         </form>
       </CardContent>

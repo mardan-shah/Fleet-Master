@@ -39,10 +39,21 @@ Using npm:
 npm install
 ```
 
-### 4. implement supabase api keys 
+### 4. Database & Auth Setup
 
+1. Set up a PostgreSQL database.
+2. Create a `.env` file in the root directory with:
+   ```env
+   DATABASE_URL="postgresql://USER:PASSWORD@HOST:PORT/DATABASE?schema=public"
+   NEXTAUTH_SECRET="your-secret-here"
+   NEXTAUTH_URL="http://localhost:3000"
+   ```
+3. Run Prisma migrations:
+   ```bash
+   npx prisma migrate dev
+   ```
 
-### 5. Run the project 
+### 5. Run the project
 ```bash
 npm run dev
 ```

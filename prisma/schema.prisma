@@ -1,0 +1,93 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id             String         @id @default(uuid())
+  email          String         @unique
+  password       String
+  name           String
+  role           String
+  company        String?
+  avatar         String?
+  phone          String?
+  bio            String?
+  location       String?
+  department     String?
+  employee_id    String?
+  created_at     DateTime       @default(now())
+  updated_at     DateTime       @updatedAt
+  vehicles       Vehicle[]
+  drivers        Driver[]
+  tickets        Ticket[]
+  fuel_updates   FuelUpdate[]
+}
+
+model Vehicle {
+  id                     String         @id @default(uuid())
+  name                   String         @unique
+  type                   String
+  year                   Int
+  make                   String?
+  model                  String
+  manufacturer           String
+  image_urls             String[]
+  total_distance         Float          @default(0)
+  total_fuel_cost        Float          @default(0)
+  total_maintenance_cost Float          @default(0)
+  created_by_id          String
+  created_by             User           @relation(fields: [created_by_id], references: [id])
+  created_at             DateTime       @default(now())
+  updated_at             DateTime       @updatedAt
+  tickets                Ticket[]
+  fuel_updates           FuelUpdate[]
+}
+
+model Driver {
+  id               String   @id @default(uuid())
+  name             String
+  vehicle_name     String?
+  license_number   String
+  license_expiry   DateTime
+  social_security  String
+  join_date        DateTime
+  image_url        String?
+  created_by_id    String
+  created_by       User     @relation(fields: [created_by_id], references: [id])
+  created_at       DateTime @default(now())
+  updated_at       DateTime @updatedAt
+}
+
+model Ticket {
+  id             String   @id @default(uuid())
+  vehicle_name   String
+  vehicle        Vehicle  @relation(fields: [vehicle_name], references: [name])
+  issue          String
+  priority       String
+  status         String
+  cost           Float
+  created_by_id  String
+  created_by     User     @relation(fields: [created_by_id], references: [id])
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}
+
+model FuelUpdate {
+  id             String   @id @default(uuid())
+  vehicle_name   String
+  vehicle        Vehicle  @relation(fields: [vehicle_name], references: [name])
+  quantity       Float
+  cost           Float
+  distance       Float
+  created_by_id  String
+  created_by     User     @relation(fields: [created_by_id], references: [id])
+  created_at     DateTime @default(now())
+  updated_at     DateTime @updatedAt
+}

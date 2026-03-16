@@ -6,6 +6,7 @@ import Navbar from '@/components/navbar/Navbar';
 import Footer from '@/components/footer/Footer';
 import { Toaster } from "@/components/ui/toaster"
 import { NotificationProvider } from '@/contexts/NotificationContext';
+import { NextAuthProvider } from '@/components/providers/NextAuthProvider';
 
 
 const inter = Inter({ subsets: ['latin'] });
@@ -24,15 +25,17 @@ export default function RootLayout({
   return (
     <html lang="en">
       <body className={inter.className}>
-      <NotificationProvider>
-        <AuthProvider>
-          <Navbar />
-            {children}
-          
-            <Footer/>
-          <Toaster />
-        </AuthProvider>
-        </NotificationProvider>
+        <NextAuthProvider>
+          <NotificationProvider>
+            <AuthProvider>
+              <Navbar />
+                {children}
+              
+                <Footer/>
+              <Toaster />
+            </AuthProvider>
+          </NotificationProvider>
+        </NextAuthProvider>
       </body>
     </html>
   );

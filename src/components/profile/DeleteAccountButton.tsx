@@ -1,3 +1,5 @@
+"use client"
+
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Trash } from "lucide-react"
@@ -13,9 +15,9 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
 import { useAuth } from "@/contexts/AuthContext"
-import { supabase } from "@/supabase"
 import { useToast } from "@/hooks/use-toast"
 import { useRouter } from "next/navigation"
+import { deleteAccount } from "@/app/actions/user"
 
 export default function DeleteAccountButton() {
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false)
@@ -27,25 +29,16 @@ export default function DeleteAccountButton() {
     try {
       if (!user) throw new Error("No user logged in")
 
-      if (user.avatar) {
-        const oldFilePath = user.avatar.split("/").pop()
-        if (oldFilePath) {
-          await supabase.storage.from("avatars").remove([oldFilePath])
-        }
-      }
+      await deleteAccount()
 
-      const { error: deleteError } = await supabase.from("profiles").delete().eq("user_id", user.id)
-
-      if (deleteError) throw deleteError
-
-      await logout()
-      router.push("/login")
       toast({
-        title: "Success",
-        description: "Account deleted successfully.",
+        title: "Account Deleted",
+        description: "Your account has been successfully deleted.",
       })
+      
+      await logout()
+      router.push("/")
     } catch (error) {
-      console.error("Error deleting account:", error)
       toast({
         title: "Error",
         description: "Failed to delete account.",
@@ -55,34 +48,30 @@ export default function DeleteAccountButton() {
   }
 
   return (
-    <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
-      <AlertDialogTrigger asChild>
-        <Button variant="destructive" className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
-          <Trash className="w-4 h-4 mr-2" />
-          Delete Account
-        </Button>
-      </AlertDialogTrigger>
-      <AlertDialogContent className="bg-dark border-border">
-        <AlertDialogHeader>
-          <AlertDialogTitle className="text-primaryaccent">Are you absolutely sure?</AlertDialogTitle>
-          <AlertDialogDescription>
-            This action cannot be undone. This will permanently delete your account and remove your data from our
-            servers.
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel className="bg-secondary text-secondary-foreground hover:bg-secondary/90">
-            Cancel
-          </AlertDialogCancel>
-          <AlertDialogAction
-            onClick={handleDeleteAccount}
-            className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
-          >
+    <div className="pt-6 border-t border-dark-border">
+      <AlertDialog open={isDeleteModalOpen} onOpenChange={setIsDeleteModalOpen}>
+        <AlertDialogTrigger asChild>
+          <Button variant="destructive" className="w-full">
+            <Trash className="w-4 h-4 mr-2" />
             Delete Account
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent className="bg-dark border-dark-border text-gray-light">
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription className="text-gray-muted">
+              This action cannot be undone. This will permanently delete your account and remove your data from our
+              servers.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel className="bg-dark-hover border-dark-border text-gray-light">Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteAccount} className="bg-red-600 hover:bg-red-700 text-white">
+              Delete Account
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </div>
   )
 }
-

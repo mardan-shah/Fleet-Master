@@ -4,7 +4,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart"
 import { Bar, BarChart, XAxis, YAxis } from "recharts"
 
-const VehicleUtilizationChart = ({ data }) => {
+const VehicleUtilizationChart = ({ data }: { data: any }) => {
   return (
     <Card className="mb-6 bg-dark border-dark-border">
       <CardHeader>

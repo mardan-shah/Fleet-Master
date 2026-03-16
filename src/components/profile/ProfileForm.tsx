@@ -4,25 +4,13 @@ import { Textarea } from "@/components/ui/textarea"
 import { Button } from "@/components/ui/button"
 import { Separator } from "@/components/ui/separator"
 import { X } from "lucide-react"
-import type React from "react" // Added import for React
-
-interface UserData {
-  name: string
-  email: string
-  phone: string
-  role: string
-  bio: string
-  avatar: string
-  company: string
-  location: string
-  department: string
-  employeeId: string
-}
+import type React from "react"
+import { UserData } from "@/types/user"
 
 interface ProfileFormProps {
   isEditing: boolean
   userData: UserData
-  setTempUserData: (userData: UserData) => void
+  setTempUserData: React.Dispatch<React.SetStateAction<UserData>>
   handleSaveChanges: () => void
   handleCancelEdit: () => void
 }
@@ -36,14 +24,13 @@ export default function ProfileForm({
 }: ProfileFormProps) {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setTempUserData({ ...userData, [name]: value });
+    setTempUserData((prev) => ({ ...prev, [name]: value }));
   };
 
   return (
     <div className="space-y-6 text-primaryaccent">
       <Separator className="bg-primaryaccent" />
       <div className="space-y-4">
-        {/* Map over fields to create input components */}
         {[
           { id: "name", label: "Full Name", type: "text" },
           { id: "email", label: "Email", type: "email" },
@@ -60,7 +47,7 @@ export default function ProfileForm({
               id={field.id}
               name={field.id}
               type={field.type}
-              value={userData[field.id as keyof UserData]}
+              value={(userData as any)[field.id] || ""}
               onChange={handleInputChange}
               className="bg-input border-input text-foreground"
               disabled={!isEditing}
@@ -73,7 +60,7 @@ export default function ProfileForm({
           <Textarea
             id="bio"
             name="bio"
-            value={userData.bio}
+            value={userData.bio || ""}
             onChange={handleInputChange}
             className="bg-input border-input text-foreground"
             rows={4}

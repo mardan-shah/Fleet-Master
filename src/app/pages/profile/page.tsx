@@ -2,25 +2,12 @@
 
 import { useState, useEffect } from "react";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/supabase";
 import { useToast } from "@/hooks/use-toast";
 import ProfileHeader from "@/components/profile/ProfileHeader";
 import ProfileForm from "@/components/profile/ProfileForm";
 import DeleteAccountButton from "@/components/profile/DeleteAccountButton";
-
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  phone: string;
-  role: string;
-  bio: string;
-  avatar: string;
-  company: string;
-  location: string;
-  department: string;
-  employeeId: string;
-}
+import { getUserData, updateUserData } from "@/app/actions/user";
+import { UserData } from "@/types/user";
 
 export default function ProfilePage() {
   const [isEditing, setIsEditing] = useState(false);
@@ -46,26 +33,12 @@ export default function ProfilePage() {
   }, [user]);
 
   const fetchUserData = async () => {
-    if (!user) return;
-
     try {
-      const { data, error } = await supabase
-        .from("profiles")
-        .select("*")
-        .eq("user_id", user.id)
-        .single();
-
-      if (error || !data) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch user data.",
-          variant: "destructive",
-        });
-        return;
-      }
+      const data = await getUserData();
+      if (!data) return;
 
       const sanitizedData: UserData = {
-        id: user.id,
+        id: data.id,
         name: data.name || "",
         email: data.email || "",
         phone: data.phone || "",
@@ -91,25 +64,19 @@ export default function ProfilePage() {
 
   const handleSaveChanges = async () => {
     try {
-      if (!user) throw new Error("No user logged in");
+      const updateData = {
+        name: tempUserData.name,
+        email: tempUserData.email,
+        phone: tempUserData.phone,
+        role: tempUserData.role,
+        bio: tempUserData.bio,
+        company: tempUserData.company,
+        location: tempUserData.location,
+        department: tempUserData.department,
+        employee_id: tempUserData.employeeId,
+      };
 
-      const { error } = await supabase
-        .from("profiles")
-        .update({
-          name: tempUserData.name,
-          email: tempUserData.email,
-          phone: tempUserData.phone,
-          role: tempUserData.role,
-          bio: tempUserData.bio,
-          company: tempUserData.company,
-          location: tempUserData.location,
-          department: tempUserData.department,
-          employee_id: tempUserData.employeeId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", user.id);
-
-      if (error) throw error;
+      await updateUserData(updateData);
 
       setUserData(tempUserData);
       setIsEditing(false);

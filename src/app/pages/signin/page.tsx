@@ -9,53 +9,14 @@ import { Label } from "@/components/ui/label";
 import { useRouter } from "next/navigation";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/contexts/AuthContext";
-import { supabase } from "@/supabase";
 
 const SignInComponent = () => {
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
-  const [resendCooldown, setResendCooldown] = useState<number>(0);
   const { toast } = useToast();
   const router = useRouter();
   const { login } = useAuth();
-
-  const startResendCooldown = () => {
-    setResendCooldown(30);
-    const timer = setInterval(() => {
-      setResendCooldown((prev) => {
-        if (prev <= 1) {
-          clearInterval(timer);
-          return 0;
-        }
-        return prev - 1;
-      });
-    }, 1000);
-  };
-
-  const handleResendVerification = async () => {
-    try {
-      const { error } = await supabase.auth.resend({
-        type: 'signup',
-        email: email,
-      });
-
-      if (error) throw error;
-
-      toast({
-        title: "Verification Email Sent",
-        description: "Please check your inbox.",
-      });
-
-      startResendCooldown();
-    } catch (error: any) {
-      toast({
-        title: "Resend Failed",
-        description: error.message || "Unable to resend verification email",
-        variant: "destructive",
-      });
-    }
-  };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -68,29 +29,13 @@ const SignInComponent = () => {
         title: "Sign In Successful",
         description: "Redirecting to dashboard...",
       });
-
-      // Let the AuthContext handle the redirect
     } catch (error: any) {
       console.error("Sign in error:", error);
-      
-      if (error.message.includes("Email not confirmed")) {
-        toast({
-          title: "Email Not Verified",
-          description: "Please check your email for verification link.",
-          action: resendCooldown === 0 ? (
-            <Button variant="outline" onClick={handleResendVerification}>
-              Resend Verification
-            </Button>
-          ) : undefined,
-        });
-        startResendCooldown();
-      } else {
-        toast({
-          title: "Sign In Failed",
-          description: error.message || "Invalid email or password",
-          variant: "destructive",
-        });
-      }
+      toast({
+        title: "Sign In Failed",
+        description: error.message || "Invalid email or password",
+        variant: "destructive",
+      });
     } finally {
       setLoading(false);
     }
@@ -131,11 +76,6 @@ const SignInComponent = () => {
                 className="bg-dark-hover border-dark-border text-gray-light"
               />
             </div>
-            {resendCooldown > 0 && (
-              <div className="text-sm text-gray-muted">
-                Resend verification available in {resendCooldown} seconds
-              </div>
-            )}
             <Button
               type="submit"
               className="w-full text-gray-light bg-primaryaccent hover:bg-dark-hover hover:border border-primaryaccent"

@@ -121,21 +121,7 @@ const Navbar = () => {
 
             {isAuthenticated ? (
               <div className="flex items-center">
-                <AccountMenuComponent
-                  isLoggedIn={isAuthenticated}
-                  avatar={
-                    <Avatar className="h-8 w-8 border border-dark-border">
-                      <AvatarImage
-                        src={user?.avatar || undefined}
-                        alt={user?.name || "User avatar"}
-                      />
-                      <AvatarFallback className="bg-dark-hover text-gray-light">
-                        {getUserInitials()}
-                      </AvatarFallback>
-                    </Avatar>
-                  }
-                  onLogout={handleLogout}
-                />
+                <AccountMenuComponent />
               </div>
             ) : (
               <Link href="/pages/signup">

@@ -11,7 +11,7 @@ import {
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button"; // Assuming you have a Button component
 
-const LogoutModal = ({ isOpen, onClose, onConfirm }) => {
+const LogoutModal = ({ isOpen, onClose, onConfirm }: any) => {
   return (
     <AlertDialog open={isOpen} onOpenChange={onClose}>
       

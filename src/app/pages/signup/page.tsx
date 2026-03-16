@@ -60,7 +60,7 @@ const SignUpComponent = () => {
       
       toast({
         title: "Account Created",
-        description: "Check your email for the verification link.",
+        description: "You can now sign in with your credentials.",
       });
   
       // Redirect to sign-in page

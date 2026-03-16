@@ -15,21 +15,21 @@ import {
   DropdownMenuLabel,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { supabase } from "@/supabase"
 import { useForm, Controller } from "react-hook-form"
 import { format, differenceInDays, differenceInMonths, differenceInYears } from "date-fns"
 import { useToast } from "@/hooks/use-toast"
+import { getDrivers, addOrEditDriver, deleteDriver } from "@/app/actions/driver"
+import { getVehicles } from "@/app/actions/vehicle"
 
 interface Driver {
   id: string
   name: string
-  vehicle: string
+  vehicle_name: string
   license_number: string
   license_expiry: string
   social_security: string
   join_date: string
   image_url: string
-  created_by: string
 }
 
 const DriverComponent = () => {
@@ -38,9 +38,8 @@ const DriverComponent = () => {
   const [previewImage, setPreviewImage] = useState<string | null>(null)
   const [imageFile, setImageFile] = useState<File | null>(null)
   const [loading, setLoading] = useState<boolean>(false)
-  const [uploadProgress, setUploadProgress] = useState<number>(0)
   const [editingDriverId, setEditingDriverId] = useState<string | null>(null)
-  const [assignedVehicles, setAssignedVehicles] = useState<string[]>([])
+  const [availableVehicles, setAvailableVehicles] = useState<any[]>([])
   const { toast } = useToast()
 
   const { control, handleSubmit, reset } = useForm({
@@ -56,129 +55,85 @@ const DriverComponent = () => {
 
   useEffect(() => {
     fetchDrivers()
+    fetchVehicles()
   }, [])
 
   const fetchDrivers = async () => {
-    const { data, error } = await supabase.from("drivers").select("*").order("name", { ascending: true })
-    if (error) {
+    try {
+      const data = await getDrivers()
+      setDrivers(data as any[])
+    } catch (error) {
       toast({
         title: "Error",
         description: "Failed to fetch drivers",
         variant: "destructive",
       })
-      return
     }
-    setDrivers(data as Driver[])
+  }
 
-    // Extract unique vehicles from the drivers list
-    const vehicles = [...new Set(data.map((driver) => driver.vehicle))]
-    setAssignedVehicles(vehicles)
+  const fetchVehicles = async () => {
+    try {
+      const data = await getVehicles()
+      setAvailableVehicles(data)
+    } catch (error) {
+      console.error("Failed to fetch vehicles:", error)
+    }
   }
 
   const handleImageUpload = async (file: File) => {
-    const fileExt = file.name.split(".").pop()
-    const fileName = `${Date.now()}.${fileExt}`
-    const filePath = `driver-images/${fileName}`
+    const formData = new FormData()
+    formData.append("file", file)
 
-    const { data, error } = await supabase.storage
-      .from("driver-images")
-      .upload(filePath, file, {
-        onProgress: (progressEvent) => {
-          const progress = (progressEvent.loaded / progressEvent.total) * 100
-          setUploadProgress(progress)
-        },
-      })
+    const response = await fetch("/api/upload", {
+      method: "POST",
+      body: formData,
+    })
 
-    if (error) {
-      console.error("Image upload error:", error)
-      toast({
-        title: "Error",
-        description: "Failed to upload image",
-        variant: "destructive",
-      })
-      return null
+    if (!response.ok) {
+      const data = await response.json()
+      throw new Error(data.error || "Upload failed")
     }
 
-    return `${supabase.storage.from("driver-images").getPublicUrl(filePath).data.publicUrl}`
+    const { url } = await response.json()
+    return url
   }
 
   const onSubmit = async (data: any) => {
     setLoading(true)
     let image_url = previewImage || ""
 
-    if (imageFile) {
-      const uploadedUrl = await handleImageUpload(imageFile)
-      if (uploadedUrl) image_url = uploadedUrl
-    }
-
-    const {
-      data: { user },
-    } = await supabase.auth.getUser()
-
-    if (!user) {
-      setLoading(false)
-      toast({
-        title: "Error",
-        description: "User not authenticated",
-        variant: "destructive",
-      })
-      return
-    }
-
-    const driverData = {
-      ...data,
-      license_expiry: new Date(data.license_expiry).toISOString(),
-      join_date: new Date(data.join_date).toISOString(),
-      image_url,
-      created_by: user?.id,
-    }
-
     try {
-      if (editingDriverId) {
-        // Update existing driver
-        const { data: updatedDriver, error } = await supabase
-          .from("drivers")
-          .update(driverData)
-          .eq("id", editingDriverId)
-          .select()
-
-        if (error) throw error
-
-        setDrivers((prev) =>
-          prev.map((driver) => (driver.id === editingDriverId ? updatedDriver[0] : driver))
-        )
-        toast({
-          title: "Driver Updated",
-          description: "The driver has been successfully updated.",
-        })
-      } else {
-        // Add new driver
-        const { data: newDriver, error } = await supabase.from("drivers").insert([driverData]).select()
-
-        if (error) throw error
-
-        setDrivers((prev) => [...prev, newDriver[0] as Driver])
-        toast({
-          title: "Driver Added",
-          description: "The driver has been successfully added.",
-        })
+      if (imageFile) {
+        image_url = await handleImageUpload(imageFile)
       }
 
+      const driverData = {
+        ...data,
+        image_url,
+      }
+
+      await addOrEditDriver(driverData, editingDriverId || undefined)
+
+      toast({
+        title: editingDriverId ? "Driver Updated" : "Driver Added",
+        description: `The driver has been successfully ${editingDriverId ? "updated" : "added"}.`,
+      })
+
+      fetchDrivers()
       setShowAddDriver(false)
       reset()
       setPreviewImage(null)
       setImageFile(null)
       setEditingDriverId(null)
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error:", error)
       toast({
         title: "Error",
-        description: "An unexpected error occurred",
+        description: error.message || "An unexpected error occurred",
         variant: "destructive",
       })
     } finally {
       setLoading(false)
-      setUploadProgress(0)
     }
   }
 
@@ -186,7 +141,7 @@ const DriverComponent = () => {
     setEditingDriverId(driver.id)
     reset({
       name: driver.name,
-      vehicle: driver.vehicle,
+      vehicle: driver.vehicle_name,
       license_number: driver.license_number,
       license_expiry: format(new Date(driver.license_expiry), "yyyy-MM-dd"),
       social_security: driver.social_security,
@@ -198,10 +153,8 @@ const DriverComponent = () => {
 
   const handleDeleteDriver = async (id: string) => {
     try {
-      const { error } = await supabase.from("drivers").delete().eq("id", id)
-      if (error) throw error
-
-      setDrivers((prev) => prev.filter((driver) => driver.id !== id))
+      await deleteDriver(id)
+      fetchDrivers()
       toast({
         title: "Driver Deleted",
         description: "The driver has been successfully deleted.",
@@ -331,9 +284,9 @@ const DriverComponent = () => {
                             <SelectValue placeholder="Select vehicle" />
                           </SelectTrigger>
                           <SelectContent>
-                            {assignedVehicles.map((vehicle) => (
-                              <SelectItem key={vehicle} value={vehicle}>
-                                {vehicle}
+                            {availableVehicles.map((vehicle) => (
+                              <SelectItem key={vehicle.id} value={vehicle.name}>
+                                {vehicle.name}
                               </SelectItem>
                             ))}
                           </SelectContent>
@@ -370,17 +323,8 @@ const DriverComponent = () => {
                   )}
                 </div>
 
-                {uploadProgress > 0 && uploadProgress < 100 && (
-                  <div className="w-full bg-dark mt-2">
-                    <div
-                      style={{ width: `${uploadProgress}%` }}
-                      className="h-2 bg-primaryaccent transition-all"
-                    />
-                  </div>
-                )}
-
                 <Button className="w-full bg-primaryaccent text-dark hover:bg-primaryaccent/90" type="submit" disabled={loading}>
-                  {loading ? (editingDriverId ? "Saving Changes..." : "Adding Driver...") : (editingDriverId ? "Save Changes" : "Add Driver")}
+                  {loading ? "Processing..." : (editingDriverId ? "Save Changes" : "Add Driver")}
                 </Button>
               </form>
             </CardContent>
@@ -422,7 +366,7 @@ const DriverComponent = () => {
                       />
                     </TableCell>
                     <TableCell>{driver.name}</TableCell>
-                    <TableCell>{driver.vehicle}</TableCell>
+                    <TableCell>{driver.vehicle_name}</TableCell>
                     <TableCell>{driver.license_number}</TableCell>
                     <TableCell>{format(new Date(driver.license_expiry), "yyyy-MM-dd")}</TableCell>
                     <TableCell>{driver.social_security}</TableCell>
