@@ -12,6 +12,9 @@ RUN npm ci
 # Copy the rest of the source code
 COPY . ./
 
+# Generate Prisma client
+RUN npx prisma generate
+
 # Generate Prisma client and build the app
 RUN npm run build
 
