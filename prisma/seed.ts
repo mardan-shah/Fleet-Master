@@ -1,4 +1,4 @@
-import { PrismaClient } from './generated-client'
+import { PrismaClient } from '../src/generated/prisma'
 import { PrismaPg } from '@prisma/adapter-pg'
 import pg from 'pg'
 import bcrypt from 'bcryptjs'
@@ -11,7 +11,7 @@ const adapter = new PrismaPg(pool as any)
 const prisma = new PrismaClient({ adapter })
 
 async function main() {
-  // 1. Clean up existing data
+  // 1. Clean up existing data (Order matters for foreign keys)
   console.log('Cleaning up database...')
   await prisma.fuelUpdate.deleteMany({})
   await prisma.ticket.deleteMany({})
