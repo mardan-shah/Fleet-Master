@@ -25,6 +25,7 @@ COPY --from=base /app/node_modules ./node_modules
 COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
+COPY --from=base /app/prisma.config.ts ./prisma.config.ts
 COPY --from=base /app/entrypoint.sh ./entrypoint.sh
 
 # Make entrypoint executable
