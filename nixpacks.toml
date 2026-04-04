@@ -1,3 +1,11 @@
-# Nixpacks configuration - NOT USED
-# This project uses Dockerfile for deployment
-# Select "Dockerfile" as build type in Dokploy
+[phases.setup]
+nixPkgs = ["nodejs_22", "npm-9_x", "openssl"]
+
+[phases.install]
+cmds = ["npm ci"]
+
+[phases.build]
+cmds = ["npx prisma generate", "npm run build"]
+
+[start]
+cmd = "npm run start"
