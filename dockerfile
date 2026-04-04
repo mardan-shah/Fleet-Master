@@ -34,10 +34,8 @@ RUN chmod +x ./entrypoint.sh
 # Set environment variables
 ENV NODE_ENV=production
 
-# These should be overridden in Coolify/Deployment settings
-ENV DATABASE_URL="postgres://postgres:uJiIZ3dBbtZvVFS4xy4OVAMyARSCtpUO29QzbdpVNC5lKhC6XPP4xHXFlq8McirV@cqiqcthiovbat5s3onr00kwd:5432/fleet_master"
-ENV NEXTAUTH_SECRET="7df8a9b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6a1b2c3d4e5f6"
-ENV NEXTAUTH_URL="https://fleet.fieldwaves.com"
+# Environment variables (DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL)
+# should be set in Dokploy environment settings
 
 EXPOSE 3000
 
