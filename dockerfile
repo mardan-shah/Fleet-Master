@@ -26,6 +26,7 @@ COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/prisma.config.ts ./prisma.config.ts
+COPY --from=base /app/next.config.ts ./next.config.ts
 COPY --from=base /app/entrypoint.sh ./entrypoint.sh
 
 # Make entrypoint executable
