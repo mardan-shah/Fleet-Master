@@ -26,22 +26,16 @@ COPY --from=base /app/.next ./.next
 COPY --from=base /app/public ./public
 COPY --from=base /app/prisma ./prisma
 COPY --from=base /app/prisma.config.ts ./prisma.config.ts
+COPY --from=base /app/tsconfig.json ./tsconfig.json
 COPY --from=base /app/next.config.ts ./next.config.ts
-COPY --from=base /app/entrypoint.sh ./entrypoint.sh
-
-# Make entrypoint executable
-RUN chmod +x ./entrypoint.sh
 
 # Set environment variables
 ENV NODE_ENV=production
 
 # Environment variables (DATABASE_URL, NEXTAUTH_SECRET, NEXTAUTH_URL)
-# should be set in Dokploy environment settings
+# MUST be set in Dokploy environment settings
 
 EXPOSE 3000
 
-# Use entrypoint script to handle DB creation if needed
-ENTRYPOINT ["./entrypoint.sh"]
-
-# Start command handles migrations and seeding as defined in package.json
+# Start the application
 CMD ["npm", "run", "start"]

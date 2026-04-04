@@ -10,72 +10,71 @@ NEXTAUTH_SECRET=your-secret-key-here
 NEXTAUTH_URL=https://your-domain.com
 ```
 
-⚠️ **Important:** Make sure the database specified in `DATABASE_URL` already exists, or ensure your database user has `CREATE DATABASE` privileges.
+⚠️ **Important:** 
+- Make sure the database specified in `DATABASE_URL` already exists
+- Ensure your database user has appropriate permissions
+- Set environment variables **BEFORE** deploying
 
-## Prisma 7 Configuration Notes
+## Dokploy Configuration
 
-This project uses **Prisma 7**, which has important changes:
-- ✅ Database URL is configured in `prisma.config.ts` (NOT in schema.prisma)
-- ✅ PrismaClient uses the adapter pattern with `@prisma/adapter-pg`
-- ✅ No `url` field in `schema.prisma` datasource block
+### Build Settings:
+1. **Build Type:** Select **"Dockerfile"** (NOT Nixpacks)
+2. **Dockerfile Path:** `dockerfile` (default)
+3. **Port:** `3000`
+
+### Environment Variables:
+Add these in Dokploy's Environment section:
+- `DATABASE_URL` - Your PostgreSQL connection string
+- `NEXTAUTH_SECRET` - A secure random string for auth
+- `NEXTAUTH_URL` - Your application's public URL
+
+## What happens on deployment:
+
+1. Docker builds the production image
+2. Prisma client is generated during build
+3. Next.js builds the production bundle
+4. At runtime: `npm run start` executes:
+   - `npx prisma db push` - Syncs schema to database
+   - `npx prisma db seed` - Seeds initial data
+   - `next start` - Starts the application
 
 ## Deployment Steps
 
-1. **Push code to repository**
+1. **Commit and push:**
    ```bash
    git add .
-   git commit -m "fix: Update Prisma 7 configuration for Dokploy"
+   git commit -m "fix: Configure Prisma 7 for Dokploy deployment"
    git push origin main
    ```
 
 2. **In Dokploy:**
-   - Verify all environment variables are set correctly
-   - Trigger a new deployment
-   - Monitor logs for successful startup
-   - Port: 3000
+   - Set build type to **Dockerfile**
+   - Add all environment variables
+   - Click Deploy
 
-## What happens on deployment:
+## Prisma 7 Notes
 
-1. Docker/Nixpacks builds the image
-2. Prisma generates the client
-3. Next.js builds the production bundle
-4. Entrypoint validates DATABASE_URL is set
-5. Prisma pushes schema changes to database via `npx prisma db push`
-6. Database seeding occurs via `npx prisma db seed`
-7. Next.js application starts on port 3000
-
-## Changes Made to Fix Deployment
-
-### Fixed Issues:
-1. ✅ **Removed `url` field from schema.prisma** - Prisma 7 doesn't allow url in schema files
-2. ✅ **Database URL configured in prisma.config.ts** - Proper Prisma 7 configuration
-3. ✅ **Using adapter pattern** - PrismaClient uses @prisma/adapter-pg with pg.Pool
-4. ✅ **Removed hardcoded credentials** - All secrets now come from environment variables
-5. ✅ **Simplified entrypoint.sh** - Removed complex database creation logic
-6. ✅ **Added next.config.ts to production image** - Required for Next.js runtime
+This project uses **Prisma 7**, which has important changes:
+- ✅ Database URL is configured in `prisma.config.ts`
+- ✅ No `url` field in `schema.prisma` datasource block
+- ✅ PrismaClient uses the adapter pattern with `@prisma/adapter-pg`
 
 ## Troubleshooting
 
-### "datasource.url property is no longer supported"
-- **Cause:** Prisma 7 doesn't allow `url` in schema.prisma datasource block
-- **Fix:** Already fixed - url removed from schema, configured in prisma.config.ts
-
-### "DATABASE_URL is not set"
+### "DATABASE_URL environment variable is not set"
 - **Cause:** Environment variable not configured in Dokploy
-- **Fix:** Add DATABASE_URL in Dokploy environment settings
+- **Fix:** Add DATABASE_URL in Dokploy → Environment section
+
+### "datasource.url property is required"
+- **Cause:** DATABASE_URL is empty or undefined at runtime
+- **Fix:** Verify the environment variable is set in Dokploy settings
 
 ### Database connection errors
 - **Cause:** Incorrect DATABASE_URL format or database doesn't exist
 - **Fix:** Verify format: `postgresql://user:password@host:port/database`
-- **Fix:** Ensure database exists or user has CREATE DATABASE permission
 
-### Nixpacks build vs Dockerfile
-- Dokploy may use Nixpacks or Dockerfile
-- **For Dockerfile:** Explicitly select "Dockerfile" in Dokploy build settings
-- **For Nixpacks:** It will auto-detect Node.js and use the provided nixpacks.toml
-
-### Container not starting
-- **Cause:** Missing environment variables
-- **Fix:** Check Dokploy logs and ensure all three variables are set
+### Build uses Nixpacks instead of Dockerfile
+- **Cause:** Wrong build type selected
+- **Fix:** In Dokploy, change build type to "Dockerfile"
 
 
