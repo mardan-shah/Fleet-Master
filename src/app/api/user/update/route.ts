@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
-import prisma from "@/lib/prisma";
+import { mockDb } from "@/lib/mock-db";
 
 export async function PUT(request: Request) {
   try {
@@ -12,16 +12,19 @@ export async function PUT(request: Request) {
 
     const { name, avatar, company } = await request.json();
 
-    const updatedUser = await prisma.user.update({
-      where: { id: (session.user as any).id },
-      data: {
-        name,
-        avatar,
-        company,
-      },
-    });
+    const userIndex = mockDb.users.findIndex(u => u.id === (session.user as any).id);
+    if (userIndex === -1) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
 
-    return NextResponse.json(updatedUser);
+    mockDb.users[userIndex] = {
+      ...mockDb.users[userIndex],
+      name: name ?? mockDb.users[userIndex].name,
+      avatar: avatar ?? mockDb.users[userIndex].avatar,
+      company: company ?? mockDb.users[userIndex].company,
+    };
+
+    return NextResponse.json(mockDb.users[userIndex]);
   } catch (error: any) {
     console.error("User update error:", error);
     return NextResponse.json(

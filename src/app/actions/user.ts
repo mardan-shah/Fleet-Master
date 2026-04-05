@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { mockDb } from "@/lib/mock-db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 
@@ -8,9 +8,7 @@ export async function getUserData() {
   const session = await getServerSession(authOptions);
   if (!session || !session.user) return null;
 
-  return await prisma.user.findUnique({
-    where: { id: (session.user as any).id },
-  });
+  return mockDb.users.find(u => u.id === (session.user as any).id) || null;
 }
 
 export async function updateUserData(data: any) {
@@ -19,10 +17,15 @@ export async function updateUserData(data: any) {
 
   const { id: _, password: __, ...updateData } = data;
 
-  return await prisma.user.update({
-    where: { id: (session.user as any).id },
-    data: updateData,
-  });
+  const userIndex = mockDb.users.findIndex(u => u.id === (session.user as any).id);
+  if (userIndex === -1) throw new Error("User not found");
+
+  mockDb.users[userIndex] = {
+    ...mockDb.users[userIndex],
+    ...updateData,
+  };
+
+  return mockDb.users[userIndex];
 }
 
 export async function deleteAccount() {
@@ -31,13 +34,10 @@ export async function deleteAccount() {
 
   const userId = (session.user as any).id;
 
-  // Prisma will handle cascaded deletes if configured in schema.
-  // In our schema we didn't specify onDelete: Cascade, so we should do it manually or update schema.
-  // For safety, let's just delete the user.
-  
-  await prisma.user.delete({
-    where: { id: userId },
-  });
+  const userIndex = mockDb.users.findIndex(u => u.id === userId);
+  if (userIndex !== -1) {
+    mockDb.users.splice(userIndex, 1);
+  }
 
   return { success: true };
 }

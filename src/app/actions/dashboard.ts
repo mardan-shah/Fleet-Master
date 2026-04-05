@@ -1,14 +1,12 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { mockDb } from "@/lib/mock-db";
 
 export async function getDashboardData() {
-  const [vehicles, drivers, tickets, fuelUpdates] = await Promise.all([
-    prisma.vehicle.findMany(),
-    prisma.driver.findMany(),
-    prisma.ticket.findMany(),
-    prisma.fuelUpdate.findMany(),
-  ]);
+  const vehicles = [...mockDb.vehicles];
+  const drivers = [...mockDb.drivers];
+  const tickets = [...mockDb.tickets];
+  const fuelUpdates = [...mockDb.fuelUpdates];
 
   return { vehicles, drivers, tickets, fuelUpdates };
 }

@@ -1,11 +1,8 @@
 import CredentialsProvider from "next-auth/providers/credentials";
-import { PrismaAdapter } from "@auth/prisma-adapter";
-import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
 import { NextAuthOptions } from "next-auth";
+import { mockDb } from "./mock-db";
 
 export const authOptions: NextAuthOptions = {
-  adapter: PrismaAdapter(prisma) as any,
   providers: [
     CredentialsProvider({
       name: "credentials",
@@ -18,23 +15,20 @@ export const authOptions: NextAuthOptions = {
           throw new Error("Invalid credentials");
         }
 
-        const user = await prisma.user.findUnique({
-          where: {
-            email: credentials.email
-          }
-        });
-
-        if (!user || !user.password) {
-          throw new Error("Invalid credentials");
-        }
-
-        const isPasswordCorrect = await bcrypt.compare(
-          credentials.password,
-          user.password
-        );
-
-        if (!isPasswordCorrect) {
-          throw new Error("Invalid credentials");
+        // Accept ANY credentials as dummy prototype user
+        // But check if it exists in mockDb first
+        let user = mockDb.users.find(u => u.email === credentials.email);
+        
+        if (!user) {
+          // Auto-create dummy user for prototype
+          user = {
+            id: Math.random().toString(36).substring(7),
+            email: credentials.email,
+            name: "Dummy User",
+            role: "user",
+            company: "Prototype Inc."
+          };
+          mockDb.users.push(user);
         }
 
         return user as any;
@@ -65,5 +59,5 @@ export const authOptions: NextAuthOptions = {
   pages: {
     signIn: "/pages/signin"
   },
-  secret: process.env.NEXTAUTH_SECRET
+  secret: process.env.NEXTAUTH_SECRET || "dummy-secret-for-prototype"
 };

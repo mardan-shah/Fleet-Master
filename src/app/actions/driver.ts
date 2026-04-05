@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { mockDb, Driver } from "@/lib/mock-db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -16,9 +16,7 @@ export interface DriverFormData {
 }
 
 export async function getDrivers() {
-  return await prisma.driver.findMany({
-    orderBy: { name: "asc" },
-  });
+  return [...mockDb.drivers].sort((a, b) => a.name.localeCompare(b.name));
 }
 
 export async function addOrEditDriver(formData: DriverFormData, id?: string) {
@@ -27,25 +25,31 @@ export async function addOrEditDriver(formData: DriverFormData, id?: string) {
 
   const data = {
     name: formData.name,
-    vehicle_name: formData.vehicle,
+    vehicle_name: formData.vehicle || null,
     license_number: formData.license_number,
     license_expiry: new Date(formData.license_expiry),
     social_security: formData.social_security,
     join_date: new Date(formData.join_date),
-    image_url: formData.image_url,
+    image_url: formData.image_url || null,
     created_by_id: (session.user as any).id,
   };
 
-  let driver;
+  let driver: Driver;
   if (id) {
-    driver = await prisma.driver.update({
-      where: { id },
-      data,
-    });
+    const index = mockDb.drivers.findIndex(d => d.id === id);
+    if (index === -1) throw new Error("Driver not found");
+
+    driver = {
+      ...mockDb.drivers[index],
+      ...data,
+    };
+    mockDb.drivers[index] = driver;
   } else {
-    driver = await prisma.driver.create({
-      data,
-    });
+    driver = {
+      ...data,
+      id: Math.random().toString(36).substring(7),
+    };
+    mockDb.drivers.push(driver);
   }
 
   revalidatePath("/pages/drivers");
@@ -53,8 +57,9 @@ export async function addOrEditDriver(formData: DriverFormData, id?: string) {
 }
 
 export async function deleteDriver(id: string) {
-  await prisma.driver.delete({
-    where: { id },
-  });
+  const index = mockDb.drivers.findIndex(d => d.id === id);
+  if (index !== -1) {
+    mockDb.drivers.splice(index, 1);
+  }
   revalidatePath("/pages/drivers");
 }

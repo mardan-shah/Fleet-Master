@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/prisma";
+import { mockDb, Ticket, FuelUpdate } from "@/lib/mock-db";
 import { getServerSession } from "next-auth";
 import { authOptions } from "@/lib/auth";
 import { revalidatePath } from "next/cache";
@@ -16,9 +16,7 @@ export interface TicketFormData {
 }
 
 export async function getTickets() {
-  return await prisma.ticket.findMany({
-    orderBy: { created_at: "desc" },
-  });
+  return [...mockDb.tickets].sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
 }
 
 export async function addTicket(formData: TicketFormData) {
@@ -27,47 +25,40 @@ export async function addTicket(formData: TicketFormData) {
 
   const cost = typeof formData.cost === 'string' ? parseFloat(formData.cost) : formData.cost;
 
-  const ticketData = {
+  const ticketData: Ticket = {
+    id: Math.random().toString(36).substring(7),
     vehicle_name: formData.vehicle,
     issue: formData.issue,
     priority: formData.priority,
     status: formData.status,
     cost: cost,
     created_by_id: (session.user as any).id,
+    created_at: new Date(),
   };
 
-  const [ticket] = await prisma.$transaction([
-    prisma.ticket.create({ data: ticketData }),
-    prisma.vehicle.update({
-      where: { name: formData.vehicle },
-      data: {
-        total_maintenance_cost: {
-          increment: ticketData.cost,
-        },
-      },
-    }),
-  ]);
+  mockDb.tickets.push(ticketData);
+
+  const vehicleIndex = mockDb.vehicles.findIndex(v => v.name === formData.vehicle);
+  if (vehicleIndex !== -1) {
+    mockDb.vehicles[vehicleIndex].total_maintenance_cost += ticketData.cost;
+  }
 
   revalidatePath("/pages/maintenance");
   revalidatePath("/pages/dashboard");
-  return ticket;
+  return ticketData;
 }
 
 export async function deleteTicket(id: string) {
-  const ticket = await prisma.ticket.findUnique({ where: { id } });
-  if (!ticket) throw new Error("Ticket not found");
+  const index = mockDb.tickets.findIndex(t => t.id === id);
+  if (index === -1) throw new Error("Ticket not found");
 
-  await prisma.$transaction([
-    prisma.ticket.delete({ where: { id } }),
-    prisma.vehicle.update({
-      where: { name: ticket.vehicle_name },
-      data: {
-        total_maintenance_cost: {
-          decrement: ticket.cost,
-        },
-      },
-    }),
-  ]);
+  const ticket = mockDb.tickets[index];
+  mockDb.tickets.splice(index, 1);
+
+  const vehicleIndex = mockDb.vehicles.findIndex(v => v.name === ticket.vehicle_name);
+  if (vehicleIndex !== -1) {
+    mockDb.vehicles[vehicleIndex].total_maintenance_cost -= ticket.cost;
+  }
 
   revalidatePath("/pages/maintenance");
   revalidatePath("/pages/dashboard");
@@ -83,9 +74,7 @@ export interface FuelUpdateFormData {
 }
 
 export async function getFuelUpdates() {
-  return await prisma.fuelUpdate.findMany({
-    orderBy: { created_at: "desc" },
-  });
+  return [...mockDb.fuelUpdates].sort((a, b) => b.created_at.getTime() - a.created_at.getTime());
 }
 
 export async function addFuelUpdate(formData: FuelUpdateFormData) {
@@ -96,52 +85,41 @@ export async function addFuelUpdate(formData: FuelUpdateFormData) {
   const cost = typeof formData.cost === 'string' ? parseFloat(formData.cost) : formData.cost;
   const distance = typeof formData.distance === 'string' ? parseFloat(formData.distance) : formData.distance;
 
-  const fuelData = {
+  const fuelData: FuelUpdate = {
+    id: Math.random().toString(36).substring(7),
     vehicle_name: formData.vehicle,
     quantity,
     cost,
     distance,
     created_by_id: (session.user as any).id,
+    created_at: new Date(),
   };
 
-  const [fuelUpdate] = await prisma.$transaction([
-    prisma.fuelUpdate.create({ data: fuelData }),
-    prisma.vehicle.update({
-      where: { name: formData.vehicle },
-      data: {
-        total_fuel_cost: {
-          increment: fuelData.cost,
-        },
-        total_distance: {
-          increment: fuelData.distance,
-        },
-      },
-    }),
-  ]);
+  mockDb.fuelUpdates.push(fuelData);
+
+  const vehicleIndex = mockDb.vehicles.findIndex(v => v.name === formData.vehicle);
+  if (vehicleIndex !== -1) {
+    mockDb.vehicles[vehicleIndex].total_fuel_cost += fuelData.cost;
+    mockDb.vehicles[vehicleIndex].total_distance += fuelData.distance;
+  }
 
   revalidatePath("/pages/maintenance");
   revalidatePath("/pages/dashboard");
-  return fuelUpdate;
+  return fuelData;
 }
 
 export async function deleteFuelUpdate(id: string) {
-  const fuelUpdate = await prisma.fuelUpdate.findUnique({ where: { id } });
-  if (!fuelUpdate) throw new Error("Fuel update not found");
+  const index = mockDb.fuelUpdates.findIndex(f => f.id === id);
+  if (index === -1) throw new Error("Fuel update not found");
 
-  await prisma.$transaction([
-    prisma.fuelUpdate.delete({ where: { id } }),
-    prisma.vehicle.update({
-      where: { name: fuelUpdate.vehicle_name },
-      data: {
-        total_fuel_cost: {
-          decrement: fuelUpdate.cost,
-        },
-        total_distance: {
-          decrement: fuelUpdate.distance,
-        },
-      },
-    }),
-  ]);
+  const fuelUpdate = mockDb.fuelUpdates[index];
+  mockDb.fuelUpdates.splice(index, 1);
+
+  const vehicleIndex = mockDb.vehicles.findIndex(v => v.name === fuelUpdate.vehicle_name);
+  if (vehicleIndex !== -1) {
+    mockDb.vehicles[vehicleIndex].total_fuel_cost -= fuelUpdate.cost;
+    mockDb.vehicles[vehicleIndex].total_distance -= fuelUpdate.distance;
+  }
 
   revalidatePath("/pages/maintenance");
   revalidatePath("/pages/dashboard");

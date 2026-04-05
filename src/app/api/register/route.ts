@@ -1,6 +1,5 @@
 import { NextResponse } from "next/server";
-import prisma from "@/lib/prisma";
-import bcrypt from "bcryptjs";
+import { mockDb, User } from "@/lib/mock-db";
 
 export async function POST(request: Request) {
   try {
@@ -16,9 +15,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const existingUser = await prisma.user.findUnique({
-      where: { email },
-    });
+    const existingUser = mockDb.users.find(u => u.email === email);
 
     if (existingUser) {
       return NextResponse.json(
@@ -27,17 +24,16 @@ export async function POST(request: Request) {
       );
     }
 
-    const hashedPassword = await bcrypt.hash(password, 10);
-
-    const user = await prisma.user.create({
-      data: {
-        email,
-        password: hashedPassword,
-        name,
-        role,
-        company,
-      },
-    });
+    const user: User = {
+      id: Math.random().toString(36).substring(7),
+      email,
+      password: "dummy_hashed_password",
+      name,
+      role,
+      company,
+    };
+    
+    mockDb.users.push(user);
 
     const { password: _, ...userWithoutPassword } = user;
 
