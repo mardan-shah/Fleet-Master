@@ -1,12 +1,13 @@
 import { PrismaClient } from "@prisma/client";
+import { PrismaPg } from "@prisma/adapter-pg";
+import pg from "pg";
 
 const prismaClientSingleton = () => {
-  const connectionString = process.env.DATABASE_URL;
-  if (!connectionString) {
-    console.error("DATABASE_URL is not set in environment variables!");
-  }
+  const connectionString = process.env.DATABASE_URL || "postgresql://dummy:dummy@localhost:5432/dummy";
   
-  return new PrismaClient();
+  const pool = new pg.Pool({ connectionString });
+  const adapter = new PrismaPg(pool as any);
+  return new PrismaClient({ adapter });
 };
 
 declare global {
