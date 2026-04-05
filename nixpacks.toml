@@ -1,22 +1,13 @@
 
 
 [phases.setup]
-nixPkgs = ["nodejs_20", "npm-9_x", "openssl"]
-
-
+nixPkgs = ["nodejs_22", "npm-10_x", "openssl"]
 
 [phases.install]
 cmds = ["npm ci"]
 
-
-
 [phases.build]
 cmds = ["npm run build"]
-
-[phases.prepare]
-cmds = ["npm run migrate"]
-
-
 
 [start]
 cmd = "npm run start"
