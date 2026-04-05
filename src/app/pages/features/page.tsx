@@ -28,6 +28,7 @@ export default function FeaturesPage() {
             alt="Fleet management dashboard"
             width={1920}
             height={1080}
+            priority
           />
           <div className="absolute inset-0 bg-black/40"></div>
         </div>
